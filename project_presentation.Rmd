@@ -90,7 +90,7 @@ confusionMatrix(val_data$classe,preds)
 ```
 
 
-## Visulization
+## Visualization
 * Plotting predictors(sensor data) with highest variable importance during training. 
 * The color of each point represents the activity.
 * For plotting we are using the name of activity and not the label used for machine learning.
