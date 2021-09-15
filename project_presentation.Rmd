@@ -1,0 +1,127 @@
+---
+title: "Activity prediction using machine learning"
+author: "Shashikant Singh Kunwar"
+date: "13/09/2021"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+
+## Introduction
+### AIM
+* Using machine learning method to predict physical activities.
+
+### UTILITY
+* This can help users get better and instant feedback on the efficiency of their exercises.
+* Allows users to easily track their performance over period of time.
+* Users can have much better control over their activities and plan workout accordingly.
+
+### HOW TO ACHIEVE IT
+* Users can monitor their physical activities through sensors on wearable devices like
+watches, bands. 
+* These sensors can be attached to different body parts/clothing based on the exercise 
+ or on instruments users are using for exercise.
+* These sensors can collect data and the computation can be performed on either the wearable device
+or on mobile phone these sensors are connected to.
+
+
+## EXAMPLE: HAR Dataset
+* Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. **Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements**. <a href="http://groupware.les.inf.puc-rio.br/work.jsf?p1=10335#ixzz4R3exXJyF"> Read more here </a>.
+* Sensor data is collected for 6 users performing different activities.
+* Machine learning model learns to predict the activity based on sensor data.
+* Output is the way activity is performed.
+
+```{r,echo=TRUE,cache=TRUE,warning=FALSE,message=FALSE}
+library(caret)
+# loading data
+data<-read.csv("pml-training.csv")
+# loading pre trained model
+model<-readRDS("model2.rda")
+# names of all the predictors
+all_predictors<-names(data)
+
+# name of columns that contains data for accelerometer
+accel_predictors<-all_predictors[grep("*accel*",all_predictors)]
+listna<-c()
+for (j in seq(1:20)){
+    if (sum(is.na(data[,accel_predictors[j]]))){
+    listna<-c(listna,j)}}
+  
+# list of variable that don't have NA.
+accel_nona_predictors<-accel_predictors[-listna]
+
+# list with predictor names and classe
+data_nona_columns<-c(accel_nona_predictors,"classe")
+        
+# return only finite data for accelerometer and labels
+data<-data[,data_nona_columns]    
+
+# set seed for reproducibility
+set.seed(42)
+
+# splitting the data
+inTrain<-createDataPartition(data$classe,p=0.7,list=FALSE)
+# using data that was not used for training
+validation_data<-data[-inTrain,]
+
+val_data<-data[-inTrain,]
+val_data$classe<-as.factor(val_data$classe)
+```
+
+
+## Activity prediction
+* The pre trained  hyper parameter optimized model can be loaded directly to save time 
+and resources.
+* Calculating confusion matrix for the val data (not used in training the model).
+* Trained model can predict the activities correctly with $\approx 95\%$ accuracy.
+```{r,echo=TRUE,cache=TRUE,message=FALSE,warning=FALSE}
+library(caret)
+set.seed(42)
+# predicting labels of the validation data
+preds<-predict(model,val_data[,-dim(val_data)[2]])
+# calculating confusion matrix between predictions and labels
+confusionMatrix(val_data$classe,preds)
+```
+
+
+## Visulization
+* Plotting predictors(sensor data) with highest variable importance during training. 
+* The color of each point represents the activity.
+* For plotting we are using the name of activity and not the label used for machine learning.
+```{r,cache=TRUE,echo=FALSE,warning=FALSE,message=FALSE}
+library(hash)
+library(rattle)
+activity<-hash()
+activity["A"]<- "Dumbbell Biceps Curl Done properly"
+activity["B"]<- "Throwing elbows to front during Dumbbell Biceps Curl" 
+activity["C"]<- "Lifting dumbbell only halfway during Dumbbell Biceps Curl"
+activity["D"]<- "Lowering dumbbell only halfway during Dumbbell Biceps Curl"
+activity["E"]<- "Throwing hips in front during Dumbbell Biceps Curl"
+for (i in keys(activity)){
+    validation_data[validation_data$classe==i,]$classe <- activity[[i]]
+}
+```
+
+```{r,cache=TRUE,warning=FALSE,echo=TRUE,message=FALSE}
+library(plotly)
+fig<-plot_ly(x=~accel_belt_z,y=~accel_dumbbell_z,z=~accel_dumbbell_y,
+        color=~classe,colors= c("red","blue","cyan","magenta","green"),
+        data=validation_data,type="scatter3d",mode="markers")
+
+fig<- layout(fig,scene=list(xaxis = list(title='accel_belt_z'),
+        yaxis = list(title='accel_dumbbell_z'),
+        zaxis=list(title='accel_dumbbell_y')))
+
+fig
+```
+
+### Conclusion
+* Machine learning can help users achieve their fitness goals.
+* Instant feedback can immensely help the users.
+* These models can make predictions using processing power of mobile phone or smart watch.
